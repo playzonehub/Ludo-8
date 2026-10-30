@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PlayZoneHub - Classic Ludo</title>
+<style>
+*{box-sizing:border-box}
+:root{--blue:#078bdc;--red:#f20b1b;--green:#08bd35;--yellow:#ffe000}
+body{margin:0;font-family:Arial,sans-serif;color:#fff;text-align:center;background-color:#087bd2;
+background-image:radial-gradient(circle at 15px 15px,#0757b5 0 9px,transparent 10px),radial-gradient(circle at 45px 45px,#0757b5 0 9px,transparent 10px),linear-gradient(45deg,transparent 45%,#ffffff12 46% 54%,transparent 55%);
+background-size:60px 60px,60px 60px,48px 48px}
+header{padding:12px 8px;background:#075bb4dd}
+h1{margin:0;color:#fff;font-size:24px;text-shadow:2px 3px #06468a}
+header p{margin:4px 0 0;font-size:12px}
+.toolbar{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:10px}
+select,button{border:2px solid #ffe45c;border-radius:8px;padding:9px 12px;font-weight:bold}
+select{background:#fff;color:#222}
+button{background:#ffda29;color:#222;cursor:pointer}
+#status{margin:0 auto 10px;padding:9px 12px;width:min(94%,650px);background:#064e9a;border:2px solid #6ecaff;border-radius:9px;font-weight:bold}
+.arena{width:min(100%,1000px);margin:auto;padding:8px;display:grid;grid-template-columns:minmax(95px,145px) minmax(0,1fr) minmax(95px,145px);grid-template-rows:1fr 1fr;gap:10px;align-items:center}
+#boardWrap{grid-column:2;grid-row:1 / 3;background:#fff;border:5px solid #f5d52f;border-radius:5px;box-shadow:0 5px 18px #003b8077;overflow:hidden}
+canvas{display:block;width:100%;height:auto;touch-action:manipulation}
+.player-panel{height:clamp(125px,22vw,190px);min-height:115px;border:4px solid #ffdc27;border-radius:15px;background:linear-gradient(145deg,#078de5,#034da8);padding:7px;display:flex;flex-direction:column;align-items:center;justify-content:space-between;box-shadow:0 4px 10px #003d8277;cursor:pointer}
+.player-panel.active{outline:4px solid #fff;box-shadow:0 0 18px #fff,0 4px 12px #003d8277;transform:scale(1.025)}
+.player-panel.disabled{opacity:.7}
+.player-panel .tag{font-size:13px;font-weight:900;text-shadow:1px 2px #123}
+.player-panel .badge-token{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:27px;text-shadow:1px 2px 3px #222;box-shadow:inset 3px 3px 5px #ffffffa8,inset -5px -5px 8px #0007,0 3px 6px #001c45}
+.dice-face{width:72px;height:72px;background:linear-gradient(145deg,#fff,#e7e4df);border:3px solid #d6d2ca;border-radius:14px;box-shadow:inset 2px 2px 5px #fff,3px 5px 8px #003b6b88;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:10px;gap:2px;transform:rotate(-4deg)}
+.dot{width:11px;height:11px;background:#080808;border-radius:50%;align-self:center;justify-self:center;box-shadow:inset 1px 1px 2px #777}
+.dot.hide{visibility:hidden}
+.dice-face.rolling{animation:shake .55s ease}
+@keyframes shake{0%{transform:rotate(0) scale(1)}25%{transform:rotate(90deg) scale(1.1)}50%{transform:rotate(190deg) scale(.9)}75%{transform:rotate(280deg) scale(1.1)}100%{transform:rotate(356deg) scale(1)}}
+#panel-3{grid-column:1;grid-row:1}
+#panel-0{grid-column:3;grid-row:1}
+#panel-2{grid-column:1;grid-row:2}
+#panel-1{grid-column:3;grid-row:2}
+.footer{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:12px}
+.footer button{background:#064f9a;color:white;border-color:#8dd7ff}
+#hint{font-size:12px;color:#e4f4ff;padding:0 10px 14px}
+@media(max-width:600px){
+ .arena{grid-template-columns:76px minmax(0,1fr) 76px;gap:5px;padding:4px}
+ .player-panel{height:125px;min-height:125px;padding:5px;border-width:2px;border-radius:10px}
+ .player-panel .tag{font-size:10px}
+ .player-panel .badge-token{width:34px;height:34px;font-size:20px}
+ .dice-face{width:53px;height:53px;padding:7px;border-radius:10px;gap:0}
+ .dot{width:7px;height:7px}
+ #boardWrap{border-width:3px}
+ header h1{font-size:21px}
+}
+@media(max-width:370px){.arena{grid-template-columns:65px minmax(0,1fr) 65px}.player-panel{height:112px;min-height:112px}.dice-face{width:47px;height:47px}.dot{width:6px;height:6px}}
+</style>
+</head>
+<body>
+<header><h1>🎲 PlayZoneHub Ludo</h1><p>Classic board style • 3D dice • Star tokens</p></header>
+<div class="toolbar">
+<select id="mode"><option value="computer">Human vs Computer</option><option value="local">Local Multiplayer</option></select>
+<select id="count"><option value="2">2 Players</option><option value="3">3 Players</option><option value="4" selected>4 Players</option></select>
+<button onclick="newGame()">New Game</button>
+</div>
+<div id="status">Loading game...</div>
+<div class="arena">
+<div class="player-panel" id="panel-3" onclick="rollDice(3)"><div class="tag">🔵 PLAYER 1</div><div class="badge-token" style="background:linear-gradient(145deg,#65d5ff,#0053bd)">★</div><div class="dice-face" id="dice-3"></div></div>
+<div class="player-panel" id="panel-0" onclick="rollDice(0)"><div class="tag">🔴 PLAYER 2</div><div class="badge-token" style="background:linear-gradient(145deg,#ff7777,#a90000)">★</div><div class="dice-face" id="dice-0"></div></div>
+<div id="boardWrap"><canvas id="board" width="600" height="600"></canvas></div>
+<div class="player-panel" id="panel-2" onclick="rollDice(2)"><div class="tag">🟡 PLAYER 4</div><div class="badge-token" style="background:linear-gradient(145deg,#fff77b,#b18b00)">★</div><div class="dice-face" id="dice-2"></div></div>
+<div class="player-panel" id="panel-1" onclick="rollDice(1)"><div class="tag">🟢 PLAYER 3</div><div class="badge-token" style="background:linear-gradient(145deg,#7aff9b,#007b25)">★</div><div class="dice-face" id="dice-1"></div></div>
+</div>
+<div class="footer"><button onclick="newGame()">🔄 Restart</button><button onclick="toggleSound()" id="soundBtn">🔊 Sound ON</button></div>
+<div id="hint">Tap the active player's dice panel. After rolling, tap a highlighted token.</div>
+
+<script>
+const c=document.getElementById('board'),ctx=c.getContext('2d'),S=600,C=40;
+const colors=['#ef1728','#08b934','#ffdf00','#0799e8'];
+const pale=['#ffb5bb','#a9edbd','#fff5a4','#a9e5ff'];
+const starts=[0,13,26,39],safe=[0,8,13,21,26,34,39,47];
+const path=[[6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],[8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],[13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]];
+const lanes=[[[1,7],[2,7],[3,7],[4,7],[5,7],[6,7]],[[7,1],[7,2],[7,3],[7,4],[7,5],[7,6]],[[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],[[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]]];
+const base=[[[1.5,1.5],[4,1.5],[1.5,4],[4,4]],[[10.5,1.5],[13,1.5],[10.5,4],[13,4]],[[10.5,10.5],[13,10.5],[10.5,13],[13,13]],[[1.5,10.5],[4,10.5],[1.5,13],[4,13]]];
+let g={mode:'computer',count:2,active:[0,1],turn:0,dice:0,rolled:false,finished:false,winner:-1,tokens:[],sound:true,busy:false};
+const fresh=()=>Array.from({length:4},()=>[-1,-1,-1,-1]);
+function save(){try{localStorage.setItem('pzh_ludo_style_v4',JSON.stringify(g))}catch(e){}}
+function load(){try{let x=JSON.parse(localStorage.getItem('pzh_ludo_style_v4'));if(x&&x.tokens&&x.tokens.length===4){g=x;return true}}catch(e){}return false}
+function current(){return g.active[g.turn]}
+function ai(p){return g.mode==='computer'&&p===1}
+function status(t){document.getElementById('status').textContent=t}
+function sound(f=520){if(!g.sound)return;try{let a=new AudioContext(),o=a.createOscillator(),v=a.createGain();o.frequency.value=f;o.connect(v);v.connect(a.destination);v.gain.value=.05;o.start();o.stop(a.currentTime+.09);o.onended=()=>a.close()}catch(e){}}
+function diceDots(n){let patterns={1:[0,0,0,0,1,0,0,0,0],2:[1,0,0,0,0,0,0,0,1],3:[1,0,0,0,1,0,0,0,1],4:[1,0,1,0,0,0,1,0,1],5:[1,0,1,0,1,0,1,0,1],6:[1,0,1,1,0,1,1,0,1]};return (patterns[n]||patterns[1]).map(v=>'<i class="dot '+(v?'':'hide')+'"></i>').join('')}
+function update(){
+ for(let p=0;p<4;p++){let d=document.getElementById('dice-'+p);d.innerHTML=diceDots(g.dice||1);let panel=document.getElementById('panel-'+p);panel.classList.toggle('active',p===current()&&!g.finished);panel.classList.toggle('disabled',!g.active.includes(p)||ai(p)||g.finished)}
+ draw();
+}
+function newGame(){g.mode=document.getElementById('mode').value;g.count=g.mode==='computer'?2:+document.getElementById('count').value;g.active=g.mode==='computer'?[0,1]:[0,1,2,3].slice(0,g.count);g.turn=0;g.dice=0;g.rolled=false;g.finished=false;g.winner=-1;g.tokens=fresh();g.busy=false;status('🔴 RED starts. Roll a 6 to bring a token out.');save();update()}
+function moves(p,n){let a=[];g.tokens[p].forEach((v,i)=>{if(v===57)return;if(v===-1&&n===6)a.push(i);else if(v>=0&&v+n<=57)a.push(i)});return a}
+function rollDice(p){if(g.finished||g.busy||g.rolled||p!==current()||ai(p)||!g.active.includes(p))return;roll(p,false)}
+function roll(p,computer){g.busy=true;let d=document.getElementById('dice-'+p);d.classList.add('rolling');let k=0,t=setInterval(()=>{g.dice=1+Math.random()*6|0;d.innerHTML=diceDots(g.dice);k++;if(k===9){clearInterval(t);g.dice=1+Math.random()*6|0;g.busy=false;g.rolled=true;d.classList.remove('rolling');d.innerHTML=diceDots(g.dice);sound(680);status((computer?'🤖 Computer':(['RED','GREEN','YELLOW','BLUE'][p]))+' rolled '+g.dice+'.');save();update();if(!moves(p,g.dice).length){setTimeout(next,850)}else if(computer)setTimeout(aiMove,650)}},65)}
+function next(){g.rolled=false;g.dice=0;g.turn=(g.turn+1)%g.active.length;status(['RED','GREEN','YELLOW','BLUE'][current()]+"'s turn.");save();update();if(ai(current()))setTimeout(()=>roll(current(),true),650)}
+function aiMove(){let p=current(),ms=moves(p,g.dice);if(!ms.length)return next();let best=ms[0],score=-1;ms.forEach(i=>{let v=g.tokens[p][i],s=v<0?30:v;if(v>=0&&v<52){let landing=(starts[p]+v+g.dice)%52;if(!safe.includes(landing))g.active.filter(q=>q!==p).forEach(q=>g.tokens[q].forEach(z=>{if(z>=0&&z<52&&(starts[q]+z)%52===landing)s+=40}))}if(v+g.dice>=52)s+=20;if(s>score){score=s;best=i}});move(p,best)}
+function move(p,i){let v=g.tokens[p][i];g.tokens[p][i]=v<0?0:v+g.dice;let pos=g.tokens[p][i];if(pos>=0&&pos<52){let land=(starts[p]+pos)%52;if(!safe.includes(land))g.active.filter(q=>q!==p).forEach(q=>g.tokens[q].forEach((z,j)=>{if(z>=0&&z<52&&(starts[q]+z)%52===land)g.tokens[q][j]=-1}))}sound(760);if(g.tokens[p].every(x=>x===57)){g.finished=true;g.winner=p;status('🏆 '+['RED','GREEN','YELLOW','BLUE'][p]+' WINS!')}else if(g.dice===6){g.rolled=false;g.dice=0;status('Six! '+['RED','GREEN','YELLOW','BLUE'][p]+' rolls again.')}else{g.rolled=false;g.dice=0;g.turn=(g.turn+1)%g.active.length;status(['RED','GREEN','YELLOW','BLUE'][current()]+"'s turn.")}save();update();if(!g.finished&&ai(current())&&!g.rolled)setTimeout(()=>roll(current(),true),650)}
+function center(rc){return [(rc[1]+.5)*C,(rc[0]+.5)*C]}
+function tokenPos(p,i){let v=g.tokens[p][i];if(v<0){let b=base[p][i];return [(b[0]+.5)*C,(b[1]+.5)*C]}if(v>=52)return center(lanes[p][Math.min(5,v-52)]);return center(path[(starts[p]+v)%52])}
+function cell(x,y,color){ctx.fillStyle=color;ctx.fillRect(x*C,y*C,C,C);ctx.strokeStyle='#b7b7b7';ctx.lineWidth=1;ctx.strokeRect(x*C,y*C,C,C)}
+function drawBoard(){
+ ctx.clearRect(0,0,600,600);ctx.fillStyle='#fff';ctx.fillRect(0,0,600,600);
+ // Four coloured home squares and white token yards
+ [[0,0,0],[9,0,1],[9,9,2],[0,9,3]].forEach(([x,y,p])=>{ctx.fillStyle=colors[p];ctx.fillRect(x*C,y*C,6*C,6*C);ctx.fillStyle='#fff';ctx.fillRect((x+1)*C,(y+1)*C,4*C,4*C);ctx.strokeStyle='#bbb';ctx.lineWidth=2;ctx.strokeRect((x+1)*C,(y+1)*C,4*C,4*C);[[1.8,1.8],[3.8,1.8],[1.8,3.8],[3.8,3.8]].forEach(([a,b])=>{let xx=(x+a)*C,yy=(y+b)*C;ctx.beginPath();ctx.arc(xx,yy,17,0,Math.PI*2);ctx.fillStyle=pale[p];ctx.fill();ctx.strokeStyle=colors[p];ctx.lineWidth=3;ctx.stroke()})});
+ // Main track
+ path.forEach((rc,i)=>{cell(rc[1],rc[0],'#fff');if(safe.includes(i)){ctx.fillStyle='#fff';ctx.font='25px Arial';ctx.textAlign='center';ctx.fillText('☆',(rc[1]+.5)*C,(rc[0]+.7)*C)}});
+ lanes.forEach((lane,p)=>lane.forEach(rc=>cell(rc[1],rc[0],pale[p])));
+ // Colour start squares
+ [[6,1,3],[1,8,0],[8,13,1],[13,6,2]].forEach(([r,col,p])=>{ctx.fillStyle=colors[p];ctx.fillRect(col*C,r*C,C,C)});
+ // Centre triangles
+ [[[[240,240],[360,240],[300,300]],0],[[[360,240],[360,360],[300,300]],1],[[[360,360],[240,360],[300,300]],2],[[[240,360],[240,240],[300,300]],3]].forEach(([pts,p])=>{ctx.beginPath();pts.forEach((v,i)=>i?ctx.lineTo(...v):ctx.moveTo(...v));ctx.closePath();ctx.fillStyle=colors[p];ctx.fill()});
+ ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.strokeRect(0,0,600,600);
+}
+function drawCoin(x,y,p,highlight){
+ ctx.save();ctx.shadowColor='#0008';ctx.shadowBlur=4;ctx.shadowOffsetY=3;
+ let grad=ctx.createRadialGradient(x-6,y-8,2,x,y,19);grad.addColorStop(0,'#fff');grad.addColorStop(.25,pale[p]);grad.addColorStop(.7,colors[p]);grad.addColorStop(1,'#222');
+ ctx.beginPath();ctx.arc(x,y,17,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();ctx.shadowColor='transparent';ctx.strokeStyle='#fff';ctx.lineWidth=2;ctx.stroke();
+ ctx.beginPath();ctx.arc(x,y,11,0,Math.PI*2);ctx.strokeStyle=colors[p];ctx.lineWidth=2;ctx.stroke();
+ ctx.fillStyle='#fff';ctx.font='bold 15px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('★',x,y+1);
+ if(highlight){ctx.beginPath();ctx.arc(x,y,23,0,Math.PI*2);ctx.strokeStyle='#111';ctx.lineWidth=3;ctx.stroke()}
+ ctx.restore();
+}
+function draw(){drawBoard();let used={};for(let p=0;p<4;p++)for(let i=0;i<4;i++){let v=g.tokens[p][i];if(v===57)continue;let [x,y]=tokenPos(p,i),key=Math.round(x)+':'+Math.round(y),n=used[key]||0;used[key]=n+1;if(n){x+=n%2?9:-9;y+=Math.ceil(n/2)*7}drawCoin(x,y,p,g.rolled&&p===current()&&moves(p,g.dice).includes(i))}}
+c.addEventListener('click',e=>{if(!g.rolled||g.finished||ai(current()))return;let r=c.getBoundingClientRect(),x=(e.clientX-r.left)*600/r.width,y=(e.clientY-r.top)*600/r.height,p=current(),best=-1,dist=1e9;moves(p,g.dice).forEach(i=>{let [a,b]=tokenPos(p,i),d=Math.hypot(a-x,b-y);if(d<dist){dist=d;best=i}});if(best>=0&&dist<35)move(p,best);else document.getElementById('hint').textContent='Tap one of the highlighted star tokens.'});
+function toggleSound(){g.sound=!g.sound;document.getElementById('soundBtn').textContent=g.sound?'🔊 Sound ON':'🔇 Sound OFF';save()}
+function init(){if(!load()){g.tokens=fresh();g.active=[0,1,2,3];g.count=4}document.getElementById('mode').value=g.mode;document.getElementById('count').value=g.count;status(g.finished?'Game finished!':(['RED','GREEN','YELLOW','BLUE'][current()]+"'s turn."));update();if(ai(current())&&!g.finished&&!g.rolled)setTimeout(()=>roll(current(),true),700)}
+init();
+</script>
+</body>
+</html>
